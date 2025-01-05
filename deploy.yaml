@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bison-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bison
+  template:
+    metadata:
+      labels:
+        app: bison
+    spec:
+      containers:
+        - name: bison
+          image: nginx  # Using nginx as an example; replace with your image
+          ports:
+            - containerPort: 80
+          command: ["sh", "-c", "echo 'Welcome to Bison!' > /usr/share/nginx/html/index.html && nginx -g 'daemon off;'"]
