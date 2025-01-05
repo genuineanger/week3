@@ -3,14 +3,14 @@ name: Build and Deploy to GKE
 on:
   push:
     branches:
-      - test
+      - '**'
 
 env:
   PROJECT_ID: ${{ secrets.GKE_PROJECT }}
   GKE_CLUSTER: autopilot-cluster-1    # cluster name
   GKE_ZONE: us-central1   # cluster zone
-  IMAGE: micro # image name
-  IMAGE_TAG: test # image tag
+  IMAGE_NAME: bison # image name
+  IMAGE_TAG: green # image tag
   GAR_ZONE: us-central1 # artifact registry zone
   GAR_REPO: week3 # artifact registry repository
 
@@ -46,15 +46,31 @@ jobs:
     # Build the Docker image
     - name: Build
       run: |-
+
+        # Use repository name as the app and Docker image name
+        IMAGE_NAME=${{ github.event.repository.name }}
+        IMAGE_TAG=$GITHUB_SHA
+        
         docker build \
-          --tag "$GAR_ZONE-docker.pkg.dev/$PROJECT_ID/$GAR_REPO/$IMAGE:$IMAGE_TAG" \
+          --tag "$GAR_ZONE-docker.pkg.dev/$PROJECT_ID/$GAR_REPO/$IMAGE_NAME:$IMAGE_TAG" \
           --build-arg GITHUB_SHA="$GITHUB_SHA" \
           --build-arg GITHUB_REF="$GITHUB_REF" \
           .
     # Push the Docker image to Google Container Registry
     - name: Publish
       run: |-
-        docker push "$GAR_ZONE-docker.pkg.dev/$PROJECT_ID/$GAR_REPO/$IMAGE:$IMAGE_TAG"
+        docker push "$GAR_ZONE-docker.pkg.dev/$PROJECT_ID/$GAR_REPO/$IMAGE_NAME:$IMAGE_TAG"
+
+    # Step 5: Determine Target Environment
+    - name: Determine Target Environment
+      id: env-check
+      run: |
+        if [[ "${{ github.ref_name }}" == "main" ]]; then
+          TARGET_ENV="blue"
+        else
+          TARGET_ENV="green"
+        fi
+        echo "target_environment=$TARGET_ENV" >> $GITHUB_ENV
 
     # Deploy the Docker image to the GKE cluster
     - name: Deploy
