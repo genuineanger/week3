@@ -1,4 +1,4 @@
-# Use the official Nginx base image
+# Use the official Nginx base images
 FROM nginx:latest
 
 # Copy the HTML file from the 'html' directory to the Nginx default document root
