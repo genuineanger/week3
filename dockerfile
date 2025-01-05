@@ -2,7 +2,7 @@
 FROM nginx:latest
 
 # Copy the HTML file from the 'html' directory to the Nginx default document root
-COPY html/index.html /home/shaun_kolk/html
+COPY html/index.html /usr/share/nginx/html/
 
 # Expose port 80 for web traffic
 EXPOSE 80
