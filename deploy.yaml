@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: bison
-          image: nginx  # Using nginx as an example; replace with your image
+          image: us-central1-docker.pkg.dev/${GKE_PROJECT}/week3/micro:test
           ports:
             - containerPort: 80
           command: ["sh", "-c", "echo 'Welcome to Bison!' > /usr/share/nginx/html/index.html && nginx -g 'daemon off;'"]
