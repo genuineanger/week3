@@ -1,80 +1,66 @@
-name: Build and Deploy to GKE
+name: CI/CD for GKE with Blue-Green Deployment
 
 on:
   push:
     branches:
-      - '**'
+      - '**'  # Trigger for all branches
 
 env:
   PROJECT_ID: ${{ secrets.GKE_PROJECT }}
-  GKE_CLUSTER: autopilot-cluster-1    # cluster name
-  GKE_ZONE: us-central1   # cluster zone
+  GAR_ZONE: us-central1
+  GAR_REPO: my-repo
+  GKE_ZONE: us-central1
   IMAGE_NAME: ${{ github.event.repository.name }}
-  GAR_ZONE: us-central1 # artifact registry zone
-  GAR_REPO: week3 # artifact registry repository
 
 jobs:
-  setup-build-publish-deploy:
-    name: Setup, Build, Publish, and Deploy
+  ci-cd:
+    name: CI/CD for ${{ github.ref_name }}
     runs-on: ubuntu-latest
-    environment: production
 
     steps:
-    - name: Checkout
+    # Step 1: Checkout Code
+    - name: Checkout Code
       uses: actions/checkout@v3
 
-    # Setup gcloud CLI
-    - id: 'auth'
-      uses: 'google-github-actions/auth@v0'
+    # Step 2: Authenticate with GCP
+    - id: auth
+      uses: google-github-actions/auth@v0
       with:
         credentials_json: '${{ secrets.GKE_SA_KEY }}'
 
-    # Configure Docker to use the gcloud command-line tool as a credential
-    # helper for authentication
-    - name: Docker configuration
-      run: |-
+    # Step 3: Configure Docker for Artifact Registry
+    - name: Docker Authentication
+      run: |
         gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://$GAR_ZONE-docker.pkg.dev
 
-    # Get the GKE credentials so we can deploy to the cluster
+    # Step 4: Set up GKE credentials
     - name: Set up GKE credentials
       uses: google-github-actions/get-gke-credentials@v0
       with:
-        cluster_name: ${{ env.GKE_CLUSTER }}
-        location: ${{ env.GKE_ZONE }}
+        cluster_name: autopilot-cluster-1
+        location: $GKE_ZONE
 
-    # Build the Docker image
-    - name: Build
-      run: |-
-
-        # Use repository name as the app and Docker image name
-        IMAGE_NAME=${{ github.event.repository.name }}
+    # Step 5: Build and Push Docker Image
+    - name: Build and Push Docker Image
+      run: |
         IMAGE_TAG=$GITHUB_SHA
-        
-        docker build \
-          --tag "$GAR_ZONE-docker.pkg.dev/$PROJECT_ID/$GAR_REPO/$IMAGE_NAME:$IMAGE_TAG" \
-          --build-arg GITHUB_SHA="$GITHUB_SHA" \
-          --build-arg GITHUB_REF="$GITHUB_REF" \
-          .
-    # Push the Docker image to Google Container Registry
-    - name: Publish
-      run: |-
-        IMAGE_NAME=${{ github.event.repository.name }}
-        IMAGE_TAG=$GITHUB_SHA
+        docker build -t "$GAR_ZONE-docker.pkg.dev/$PROJECT_ID/$GAR_REPO/$IMAGE_NAME:$IMAGE_TAG" .
         docker push "$GAR_ZONE-docker.pkg.dev/$PROJECT_ID/$GAR_REPO/$IMAGE_NAME:$IMAGE_TAG"
 
-    # Step 5: Determine Target Environment
-    - name: Determine Target Environment
-      id: env-check
+    # Step 6: Deploy to Blue or Green Environment
+    - name: Deploy Application
       run: |
         if [[ "${{ github.ref_name }}" == "main" ]]; then
-          TARGET_ENV="blue"
+          ENV="production"
+          kubectl apply -f k8s/deployment-blue.yaml
+          kubectl apply -f k8s/service-blue.yaml
         else
-          TARGET_ENV="green"
-        fi
-        echo "target_environment=$TARGET_ENV" >> $GITHUB_ENV
+          ENV="test"
+          kubectl apply -f k8s/deployment-green.yaml
+          kubectl apply -f k8s/service-green.yaml
 
-    # Deploy the Docker image to the GKE cluster
-    - name: Deploy
-      run: |-
-        kubectl apply -f deploy.yaml
-        kubectl get pods
+    # Optional: Verify Deployments
+    - name: Verify Deployment
+      run: |
+        kubectl get deployments
+        kubectl get services
