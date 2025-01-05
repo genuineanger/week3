@@ -1,6 +1,8 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  labels:
+    app: week3-bison-green
   name: week3-bison-green
 spec:
   replicas: 1
