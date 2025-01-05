@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: week3-bison-green
+  name: week3-bison-green
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: week3-bison-green
+  template:
+    metadata:
+      labels:
+        app: week3-bison-green
+    spec:
+      containers:
+        - name: bison
+          image: us-central1-docker.pkg.dev/halogen-shine-434509-r3/week3/week3-bison
+          ports:
+            - containerPort: 80
