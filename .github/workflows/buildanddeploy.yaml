@@ -39,7 +39,7 @@ jobs:
       uses: google-github-actions/get-gke-credentials@v1
       with:
         cluster_name: autopilot-cluster-1
-        location: $GKE_ZONE
+        location: us-central1  # Updated to region instead of zone
 
     # Step 5: Build and Push Docker Image
     - name: Build and Push Docker Image
