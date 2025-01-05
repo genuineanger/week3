@@ -14,6 +14,6 @@ spec:
     spec:
       containers:
         - name: bison
-          image: us-central1-docker.pkg.dev/halogen-shine-434509-r3/week3-bison/bison:green
+          image: us-central1-docker.pkg.dev/halogen-shine-434509-r3/week3/week3-bison
           ports:
             - containerPort: 80
